@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, ImageBackground } from "react-native";
-import * as Location from "expo-location";
+import * as Location from "expo-location"; // Importamos el módulo de ubicación de Expo
 
 export default function App() {
+  // Estado para almacenar la ubicación actual del dispositivo
   const [location, setLocation] = useState(null);
+  // Estado para almacenar un posible mensaje de error si el usuario no da permisos
   const [errorMsg, setErrorMsg] = useState(null);
+  // Estado de carga mientras obtenemos la ubicación
   const [loading, setLoading] = useState(true);
 
+  // Lista de lugares fijos con coordenadas
   const places = [
     { id: "1", name: "🏠 Mi Casa (Rivadavia 4976)", latitude: -34.6045, longitude: -58.4180 }, 
     { id: "2", name: "🎓 Escuela (ORT Yatay 240)", latitude: -34.6097, longitude: -58.4294 },
     { id: "3", name: "⚽ Club Ferro", latitude: -34.61867, longitude: -58.44783 },
   ];
 
+  // Función para calcular la distancia entre dos puntos geográficos usando la fórmula Haversine
   const getDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
+    const R = 6371; // Radio de la Tierra en km
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
@@ -23,32 +28,41 @@ export default function App() {
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return R * c; // Retorna la distancia en km
   };
 
+  // Función para formatear la distancia a metros o kilómetros según corresponda
   const formatDistance = (km) => {
     if (km < 1) return `${Math.round(km * 1000)} m`;
     return `${km.toFixed(1)} km`;
   };
 
+  // useEffect que se ejecuta al montar el componente
   useEffect(() => {
     (async () => {
+      // Solicitar permisos de ubicación en primer plano
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
+        // Si el usuario niega permisos, mostramos mensaje de error
         setErrorMsg("❌ Permiso denegado para acceder a la ubicación.");
         setLoading(false);
         return;
       }
 
+      // Obtener la ubicación actual del dispositivo
       let loc = await Location.getCurrentPositionAsync({});
+      // Guardamos la ubicación en el estado
       setLocation(loc.coords);
+      // Desactivamos el estado de carga
       setLoading(false);
     })();
   }, []);
 
+  // Render de cada "card" en la lista
   const renderCard = ({ item }) => {
     let distText = null;
     if (location) {
+      // Si tenemos la ubicación, calculamos la distancia al lugar
       const distKm = getDistance(
         location.latitude,
         location.longitude,
@@ -79,9 +93,12 @@ export default function App() {
       <View style={styles.container}>
         <Text style={styles.title}>📍 Distancias desde mi ubicación</Text>
 
+        {/* Mostrar loader mientras se obtiene la ubicación */}
         {loading && <ActivityIndicator size="large" color="#00d4ff" />}
+        {/* Mostrar mensaje de error si el usuario no dio permisos */}
         {errorMsg && <Text style={styles.error}>{errorMsg}</Text>}
 
+        {/* Mostrar la lista de lugares una vez que tenemos la ubicación */}
         {!loading && !errorMsg && (
           <FlatList
             data={places}
@@ -104,7 +121,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 60,
     paddingHorizontal: 20,
-    backgroundColor: "rgba(0,0,0,0.3)", // ligera oscuridad sobre el fondo
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   title: {
     fontSize: 26,
